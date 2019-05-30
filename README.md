@@ -1,65 +1,32 @@
-# akka-java-cluster-openshift
-An Akka Java cluster OpenShift demo application 
+# akka-java-cluster-istio
 
+An Akka Java cluster Istio demo application. It requires Istio 1.2 (not yet released, the latest nightly should do).
 
-This is an amazing way to visualize Akka Cluster behavior, and demonstrate core reactive systems principles! 
+## Building
 
-If you are not inclined to spin up OKD, Openshift or the like, here are a few additional steps you need to use your trusty minikube instance: 
+A docker image is deployed to Docker hub which contains this application built, and the deployment descriptor references that. If you wish to build your own image, run:
 
-Create the target namespace (akka-cluster-1): 
+```
+mvn package docker:build
+```
 
-echo the file below to the custer, or create a file called  add-akka-cluster-1.json containing:
+To first build the image, and then tag/push it to your repo using:
 
-{
-  "kind": "Namespace",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "akka-cluster-1",
-    "labels": {
-      "name": "akka-cluster-1"
-    }
-  }
-}
+```
+docker tag akka-cluster-demo:1.0.3 <your-docker-repo>/akka-cluster-demo:1.0.3
+docker push <your-docker-repo>/akka-cluster-demo:1.0.3
+```
 
-create the namespace: 
+Then update the `image` field in `kubernetes/akka-cluster-deployment.yml` to point to your image.
 
-kubectl create -f add-akka-cluster-1.json
+## Deploying
 
-By default ingress is not turned on in minikube so you need to enable ingress and use the node_port as its the only supported mode of ingress for minikube:
+This configures an Istio gateway that routes all HTTP requests to the default Istio ingress to the Akka cluster app. That might not be what you want, if not, configure `kubernetes/akka-cluster-istio-service.yaml` accordingly.
 
-enable ingress:
+To deploy this to the default namespace (change the `-n` argument for a different namespace):
 
-minikube addons enable ingress
+```
+kubectl apply -f kubernetes/ -n default
+```
 
-set the namespace:
-
-kubectl config set-context $(kubectl config current-context) --namespace=akka-cluster-1
-
-verify the deployment name:
-
-kubectl get deployment
-
-NAME                READY   UP-TO-DATE   AVAILABLE   AGE
-akka-cluster-demo   3/3     3            3           12m
-
-expose the deployment, create a service: 
-
-expose deployment/akka-cluster-demo --type=NodePort --port 8080
-
-export a NODE_PORT evironment variable: 
-
-export NODE_PORT=$(kubectl get services/akka-cluster-demo -o go-template='{{(index .spec.ports 0).nodePort}}')
-
-Get the minikube ip:
-
-minikube ip
-
-192.168.99.100
-
-echo $NODE_PORT
-
-32219
-
-hit your browser with the combined:
-
-http://192.168.99.100:32219
+Now, assuming your Istio ingress has an externally accessible IP address, visit it (the IP address can be found be running `kubectl get service -n istio-system istio-ingressgateway`). You should see the Akka cluster sharding visualisation. You can kill a node by clicking on it, you will then see the shards get rebalanced to other nodes, and in a short time, the node will be restarted by Kubernetes, and shards will gradually be allocated back to it.

@@ -4,31 +4,24 @@ metadata:
   labels:
     app: akka-cluster-demo
   name: akka-cluster-demo
-  namespace: akka-cluster-1
 spec:
   replicas: 3
   selector:
     matchLabels:
      app: akka-cluster-demo
-  strategy:
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
-    type: RollingUpdate
 
   template:
     metadata:
       labels:
         app: akka-cluster-demo
-        actorSystemName: akka-cluster-demo
+      annotations:
+        traffic.sidecar.istio.io/includeInboundPorts: "8080"
+        traffic.sidecar.istio.io/excludeOutboundPorts: "2552,8558"
     spec:
       containers:
       - name: akka-cluster-demo
-        image: akka-cluster-demo:1.0.2
-        imagePullPolicy: Never
-        livenessProbe:
-          tcpSocket:
-            port: 8558
+        image: jamesroper/akka-cluster-demo:1.0.3
+        imagePullPolicy: Always
         ports:
         - name: http
           containerPort: 8080
@@ -38,12 +31,21 @@ spec:
           containerPort: 2552
           protocol: TCP
         # akka-management bootstrap
-        # must match up with contact-point-discovery.port-name for bootstrap
         - name: management
           containerPort: 8558
           protocol: TCP
-        env:
-          - name: NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
+        readinessProbe:
+          httpGet:
+            path: "/ready"
+            port: management
+          periodSeconds: 2
+          failureThreshold: 20
+          initialDelaySeconds: 2
+        livenessProbe:
+          httpGet:
+            path: "/alive"
+            port: management
+          periodSeconds: 2
+          failureThreshold: 20
+          initialDelaySeconds: 2
+
