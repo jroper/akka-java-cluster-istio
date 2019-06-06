@@ -14,7 +14,7 @@
         <akka.version>2.5.22</akka.version>
         <akka.http.version>10.1.8</akka.http.version>
         <akka.cluster.bootstrap.version>1.0.1</akka.cluster.bootstrap.version>
-        <docker.image.version>1.0.3</docker.image.version>
+        <docker.image.version>1.0.4</docker.image.version>
         <jackson.version>2.9.8</jackson.version>
         <junit.version>4.12</junit.version>
         <junit.jupiter.version>5.0.2</junit.jupiter.version>
@@ -211,7 +211,7 @@
                                     <exec>
                                         <args>/bin/sh</args>
                                         <args>-c</args>
-                                        <args>java -jar /maven/akka-cluster-openshift.jar</args>
+                                        <args>java $JAVA_OPTS -jar /maven/akka-cluster-openshift.jar</args>
                                     </exec>
                                 </entryPoint>
                                 <assembly>
